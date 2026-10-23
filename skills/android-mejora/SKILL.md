@@ -41,6 +41,14 @@ Cuando pidan debloat, ocultar/quitar bloatware, revisar apps del launcher, permi
 | Permisos, privacidad, sensores | permisos | `references/permisos.md` |
 | Warp / comandos pm, cmd, am | comandos | `references/comandos.md` |
 | Dispositivo concreto (POCO C75 4G) | equipo | `references/dispositivo-poco-c75-4g.md` |
+| Teléfono de usuario no técnico | sin-root | `references/sin-root-no-tecnicos.md` |
+
+## Scripts listos (`scripts/`)
+| Script | Uso |
+|---|---|
+| `1-inventario.sh` | Solo lectura: estado de paquetes objetivo (no modifica nada) |
+| `2-desinstalar-rish.sh` | Debloat reversible via rish, con fallback `disable-user` y verificación fiable |
+| `3-restaurar-rish.sh` | Restaura `QUITADO` (install-existing) y `DESHABILITADO` (pm enable) |
 
 ## Convenciones de scripts (Termux)
 - Shebang: `#!/data/data/com.termux/files/usr/bin/bash`.
@@ -48,9 +56,13 @@ Cuando pidan debloat, ocultar/quitar bloatware, revisar apps del launcher, permi
 - Logs con fecha: `log_<accion>_$(date +%Y%m%d_%H%M%S).txt`.
 - `set -u`; capturar salida de `rish` con `timeout 30`.
 - Clasificar resultado: `Success` / `Failure` / `not installed` / otro.
+- **Verificación fiable**: leer `pm list packages` una sola vez (nunca un grep por paquete via rish).
+- **Fallback**: si `uninstall --user 0` da `Failure [-1000]`, usar `pm disable-user --user 0`.
+- Plantillas listas en `scripts/`.
 
 ## Límites
 - **No** desinstalar paquetes críticos (launcher, `com.android.systemui`, settings, telefonía, GMS core) sin advertencia fuerte.
+- **No** correr scripts en el teléfono de un usuario no técnico: usar `references/sin-root-no-tecnicos.md`.
 - **No** prometer "más batería" o "más velocidad" sin medir antes/después.
 - Ocultar apps del launcher **no es privacidad real**; decirlo. Para privacidad usar bloqueo de apps/carpeta con PIN.
 - Cambios con Shizuku se pierden si se reinicia Shizuku en algunos casos; reportar.

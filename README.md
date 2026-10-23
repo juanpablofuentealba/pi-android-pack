@@ -17,6 +17,14 @@ Pack de skills de **pi** para mejorar, limpiar y controlar un Android desde **Te
 | `references/permisos.md` | Permisos, AppOps, privacidad real |
 | `references/comandos.md` | Cheatsheet de `pm`/`cmd`/`am`/`dumpsys` |
 | `references/dispositivo-poco-c75-4g.md` | Caso concreto: POCO C75 4G (Helio G81 Ultra, eMMC, HyperOS 3) |
+| `references/sin-root-no-tecnicos.md` | Optimizar el teléfono de otra persona sin Termux/scripts |
+
+### Scripts (`skills/android-mejora/scripts/`)
+| Script | Uso |
+|---|---|
+| `1-inventario.sh` | Solo lectura: estado de paquetes (no modifica nada) |
+| `2-desinstalar-rish.sh` | Debloat reversible via rish (con fallback y verificación fiable) |
+| `3-restaurar-rish.sh` | Restaura lo desinstalado/deshabilitado |
 
 ## Instalación
 
