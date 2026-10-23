@@ -1,0 +1,10 @@
+{
+  "name": "pi-android-pack",
+  "version": "1.0.0",
+  "description": "Pack de skills para optimizar, limpiar y controlar Android desde Termux (Shizuku/rish, debloat, launcher, permisos, batería).",
+  "keywords": ["pi-package", "android", "termux", "shizuku", "debloat", "launcher"],
+  "license": "MIT",
+  "pi": {
+    "skills": ["./skills"]
+  }
+}
