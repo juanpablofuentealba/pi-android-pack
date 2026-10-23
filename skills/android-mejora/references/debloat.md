@@ -38,39 +38,89 @@ Nunca usar `--user all` ni `pm disable` en cascada sin necesidad.
 - `com.android.vending` (Play Store)
 - Cualquier cosa con "security", "keystore", "certinstaller", "sim", "bluetooth", "wifi"
 
-## Script patrón (Termux + rish)
+## Pitfalls reales (aprendidos en un POCO C75 4G / HyperOS 3)
+
+1. **`Failure [-1000]`** = paquete protegido; `pm uninstall --user 0` NO puede. Solución: **fallback a `pm disable-user --user 0`** (mismo efecto práctico: no corre, no aparece).
+2. **Verificación falsa por timeout.** Hacer `rish -c "pm list packages" | grep <pkg>` dentro del bucle puede devolver vacío por timeout y reportar "quitado" cuando NO lo está. **Solución:** leer la lista completa **una sola vez** (`ALL=$(rish -c "pm list packages")`) y comparar en memoria. Verificar re-leyendo el estado al final.
+3. **No abreviar la verificación.** `pm list packages` sigue mostrando el paquete si está deshabilitado; para distinguir usar `pm list packages -d`.
+4. **Reiniciar Shizuku**: si `rish -c id` da "Request timeout", Shizuku está dormido. Quitar ahorro de batería de Termux y Shizuku.
+
+## Script patrón robusto (Termux + rish)
 
 ```bash
 #!/data/data/com.termux/files/usr/bin/bash
 set -u
-RISH=~/rish
-LOG=~/debloat/log_desinstalacion_$(date +%Y%m%d_%H%M%S).txt
+RISH="$HOME/rish"
+LOG="$HOME/debloat/log_desinstalacion_$(date +%Y%m%d_%H%M%S).txt"
+PKGS=( com.miui.daemon com.xiaomi.midrop com.xiaomi.glgm com.android.stk )
 
-PKGS=( com.miui.analytics com.miui.msa.global )   # <-- lista aprobada
+# rish operativo
+timeout 20 "$RISH" -c id 2>&1 | grep -q "uid=2000" || { echo "Inicia Shizuku"; exit 1; }
 
-echo "# Desinstalados user 0 via rish, $(date)" > "$LOG"
+# Estado en UNA llamada (evita timeouts por-paquete)
+ALL=$(timeout 25 "$RISH" -c "pm list packages" | sed 's/^package://')
+DIS=$(timeout 25 "$RISH" -c "pm list packages -d" | sed 's/^package://')
+present(){ echo "$ALL" | grep -qx "$1"; }
+
+{
+ echo "# Debloat user 0 via rish, $(date)"
+} > "$LOG"
+
 for p in "${PKGS[@]}"; do
+  present "$p" || { echo "AUSENTE $p"; echo "SKIP $p (ausente)" >>"$LOG"; continue; }
+
   out=$(timeout 30 "$RISH" -c "pm uninstall --user 0 $p" 2>&1)
-  case "$out" in
-    *Success*)  echo "OK   $p"; echo "OK $p" >> "$LOG" ;;
-    *Failure*|*Exception*|*"not installed"*) echo "SKIP $p ($out)"; echo "SKIP $p" >> "$LOG" ;;
-    *)          echo "??   $p -> $out"; echo "SKIP $p" >> "$LOG" ;;
-  esac
+  echo "$out" | grep -q Success && { echo "QUITADO $p"; echo "QUITADO $p" >>"$LOG"; continue; }
+
+  # Fallback para Failure [-1000]
+  out2=$(timeout 30 "$RISH" -c "pm disable-user --user 0 $p" 2>&1)
+  echo "$out2" | grep -qi "new state: disabled" \
+    && { echo "DESHABILITADO $p"; echo "DESHABILITADO $p" >>"$LOG"; continue; }
+
+  echo "SKIP $p ($out | $out2)"; echo "SKIP $p" >>"$LOG"
+done
+
+# Verificacion final re-leyendo estado
+echo "== Verificacion =="
+for p in "${PKGS[@]}"; do
+  if echo "$ALL" | grep -qx "$p"; then
+    echo "$DIS" | grep -qx "$p" && echo "DESHABILITADO  $p" || echo "SIGUE ACTIVO   $p"
+  else echo "QUITADO        $p"; fi
 done
 ```
+
+Implementación lista en `~/debloat/2b-desinstalar-pendientes-rish.sh`.
 
 ## Restaurar
 
+El log distingue `QUITADO` (→ `install-existing`) de `DESHABILITADO` (→ `pm enable`):
+
 ```bash
 #!/data/data/com.termux/files/usr/bin/bash
 set -u
+RISH="$HOME/rish"
 LOG="${1:-$(ls -t ~/debloat/log_desinstalacion_*.txt 2>/dev/null | head -1)}"
-grep '^OK ' "$LOG" | awk '{print $2}' | while read -r p; do
-  cmd package install-existing "$p" >/dev/null 2>&1 && echo "RESTAURADO $p" || echo "FALLO $p"
-done
+r(){ timeout 30 "$RISH" -c "$1" 2>&1; }
+
+while read -r state pkg _; do
+  [ -n "${pkg:-}" ] || continue
+  case "$state" in
+    QUITADO|OK)     r "cmd package install-existing $pkg" | grep -qi installed \
+                      && echo "RESTAURADO $pkg" || echo "FALLO $pkg" ;;
+    DESHABILITADO)  r "pm enable $pkg" | grep -qi "new state: enabled" \
+                      && echo "REACTIVADO $pkg" || echo "FALLO $pkg" ;;
+  esac
+done < <(grep -E '^(QUITADO|DESHABILITADO|OK) ' "$LOG")
 ```
 
-Con rish: anteponer `~/rish -c "..."`.
+Implementación lista en `~/debloat/3-restaurar.sh`.
+
+## Casos especiales vistos
+
+| Paquete | Comportamiento | Acción |
+|---|---|---|
+| `com.xiaomi.midrop` | `uninstall --user 0` → `Failure [-1000]` | `disable-user` ✅ |
+| `com.miui.daemon`, `com.xiaomi.glgm`, `com.android.stk` | uninstall normal | `uninstall --user 0` ✅ |
 
 ## Alternativa no destructiva
 `pm disable-user --user 0 <pkg>` deshabilita en vez de desinstalar. Igual de reversible con `pm enable <pkg>`. Útil cuando hay duda.

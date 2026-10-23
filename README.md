@@ -16,6 +16,7 @@ Pack de skills de **pi** para mejorar, limpiar y controlar un Android desde **Te
 | `references/energia.md` | Batería, wakelocks, autostart |
 | `references/permisos.md` | Permisos, AppOps, privacidad real |
 | `references/comandos.md` | Cheatsheet de `pm`/`cmd`/`am`/`dumpsys` |
+| `references/dispositivo-poco-c75-4g.md` | Caso concreto: POCO C75 4G (Helio G81 Ultra, eMMC, HyperOS 3) |
 
 ## Instalación
 
@@ -36,6 +37,8 @@ Actualizar: `pi update --extensions`. Ver paquetes: `pi list`.
 
 ## Principios
 - Diagnóstico antes de tocar nada.
-- Todo reversible (`uninstall --user 0` ↔ `install-existing`).
+- Todo reversible (`uninstall --user 0` ↔ `install-existing`; `disable-user` ↔ `enable`).
 - Logs y advertencia de riesgos para paquetes críticos.
 - Sin promesas de mejora sin medir antes/después.
+- Fallback `disable-user` cuando `uninstall` da `Failure [-1000]`.
+- Verificación fiable: leer la lista de paquetes una sola vez, no un grep por paquete.

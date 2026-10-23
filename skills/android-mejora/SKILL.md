@@ -40,6 +40,7 @@ Cuando pidan debloat, ocultar/quitar bloatware, revisar apps del launcher, permi
 | Batería, autostart, wakelocks | energía | `references/energia.md` |
 | Permisos, privacidad, sensores | permisos | `references/permisos.md` |
 | Warp / comandos pm, cmd, am | comandos | `references/comandos.md` |
+| Dispositivo concreto (POCO C75 4G) | equipo | `references/dispositivo-poco-c75-4g.md` |
 
 ## Convenciones de scripts (Termux)
 - Shebang: `#!/data/data/com.termux/files/usr/bin/bash`.
@@ -54,3 +55,9 @@ Cuando pidan debloat, ocultar/quitar bloatware, revisar apps del launcher, permi
 - Ocultar apps del launcher **no es privacidad real**; decirlo. Para privacidad usar bloqueo de apps/carpeta con PIN.
 - Cambios con Shizuku se pierden si se reinicia Shizuku en algunos casos; reportar.
 - Respetar garantía: `pm uninstall --user 0` no toca la partición de sistema, pero anotar que es reversible con `install-existing`.
+
+## Fallos frecuentes (evitarlos)
+- **`Failure [-1000]`** al desinstalar → paquete protegido; usar `pm disable-user --user 0` como fallback.
+- **Falsos "OK"** al verificar: leer `pm list packages` **una sola vez** (no un grep por paquete vía rish, que da timeout).
+- **Confundir modelos por nombre comercial**: verificar con `ro.board.platform`/`ro.soc.model` (el POCO C75 4G es MediaTek, el 5G es Qualcomm).
+- **Swap sobre eMMC**: en equipos con eMMC 5.1 la RAM virtual rinde peor que en UFS; recomendar +2 GB o desactivar.
